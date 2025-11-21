@@ -1,0 +1,30 @@
+const express = require('express');
+const cors = require('cors');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const ffmpeg = require('fluent-ffmpeg');
+
+// Initialiser l'application Express
+const app = express();
+const port = 6666;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use('/audio', express.static(path.join(__dirname, 'audio')));
+
+// Création du dossier audio s'il n'existe pas
+const audioDir = path.join(__dirname, 'audio');
+if (!fs.existsSync(audioDir)) {
+    fs.mkdirSync(audioDir);
+}
+let mypath = "/home/loctts/datts";
+// Chemin complet vers l'exécutable piper
+const piperPath = '/home/loctts/datts/.local/bin/piper';
+
+// Configuration des voix disponibles
+const voices = {
+    'en': {
+        model: mypath + '/voices/en_US-amy-low.onnx',
