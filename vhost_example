@@ -1,5 +1,6 @@
-<VirtualHost *:80>
+﻿<VirtualHost *:443>
     ServerName loctts.5tfu.org
+    ServerAlias loctts.blektre.com
 
     DocumentRoot /home/loctts/datts
     <Directory /home/loctts/datts>
@@ -8,15 +9,36 @@
         Require all granted
     </Directory>
 
-    ProxyPreserveHost On
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/loctts.5tfu.org/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/loctts.5tfu.org/privkey.pem
 
-    # Enlève le préfixe /api/ avant de proxyfier vers Node
+    ProxyPreserveHost On
+    ProxyAddHeaders Off
     RewriteEngine On
     RewriteRule ^/api/(.*)$ http://127.0.0.1:6666/$1 [P,L]
 
-    Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Headers "Content-Type"
-    Header always set Access-Control-Allow-Methods "GET,POST,DELETE,OPTIONS"
+    # Origines autorisées (blektre/5tfu + sous-domaines)
+    SetEnvIfNoCase Origin "^https?://([a-z0-9-]+\\.)?(blektre\\.com|5tfu\\.org)$" ORIGIN_OK=1
+
+    <LocationMatch "^/api/">
+        # Nettoie tout ce qui vient de l’upstream
+        Header always unset Access-Control-Allow-Origin
+        Header always unset Access-Control-Allow-Credentials
+        Header always unset Access-Control-Allow-Headers
+        Header always unset Access-Control-Allow-Methods
+        Header always unset Access-Control-Expose-Headers
+
+        # Pose une seule série de headers si l’Origin est autorisé
+        Header always set Access-Control-Allow-Origin "%{Origin}i" env=ORIGIN_OK
+        Header always set Access-Control-Allow-Headers "Content-Type, Authorization" env=ORIGIN_OK
+        Header always set Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS" env=ORIGIN_OK
+        Header always set Access-Control-Allow-Credentials "true" env=ORIGIN_OK
+        Header always set Vary "Origin"
+
+        RewriteCond %{REQUEST_METHOD} =OPTIONS
+        RewriteRule ^ - [R=204,L]
+    </LocationMatch>
 
     ErrorLog  ${APACHE_LOG_DIR}/loctts-error.log
     CustomLog ${APACHE_LOG_DIR}/loctts-access.log combined

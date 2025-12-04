@@ -1,10 +1,18 @@
 (function () {
-    const API_BASE = window.AUTOPLAY_API_BASE || '/api';
+    // Always target the backend on loctts.5tfu.org to avoid per-origin CORS issues
+    const API_BASE = window.AUTOPLAY_API_BASE || 'https://loctts.5tfu.org/api';
+    const apiOrigin = (() => {
+        try {
+            return new URL(API_BASE, window.location.origin).origin;
+        } catch (e) {
+            return 'https://loctts.5tfu.org';
+        }
+    })();
     const DEFAULT_VOICE = 'en';
 
     const absoluteUrl = (url) => {
         try {
-            return new URL(url, window.location.origin).toString();
+            return new URL(url, apiOrigin).toString();
         } catch (e) {
             return url;
         }
